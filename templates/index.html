@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gateway Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #21262d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --online: #3fb950;
+      --offline: #f85149;
+      --unknown: #6e7681;
+      --accent: #1f6feb;
+      --accent-glow: rgba(31, 111, 235, 0.3);
+      --pin-active: #e3b341;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    .config-link {
+      margin-left: auto;
+      font-size: 0.8rem;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .config-link:hover { color: var(--text); }
+
+    header h1 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+      color: var(--text);
+    }
+
+    header span {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-wrap {
+      position: relative;
+      flex: 1;
+      max-width: 360px;
+    }
+
+    .filter-wrap input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.875rem;
+      padding: 0.5rem 2.5rem 0.5rem 0.75rem;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .filter-wrap input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .filter-wrap input.pinned {
+      border-color: var(--pin-active);
+      box-shadow: 0 0 0 3px rgba(227, 179, 65, 0.2);
+    }
+
+    .pin-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1;
+      padding: 2px;
+      transition: color 0.15s, transform 0.15s;
+    }
+
+    .pin-btn:hover { color: var(--text); }
+    .pin-btn.active { color: var(--pin-active); transform: translateY(-50%) rotate(-45deg); }
+
+    .refresh-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .refresh-btn:hover { color: var(--text); border-color: var(--accent); }
+
+    .status-bar {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .status-bar .dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+
+    .gateway-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .gw-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.2rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      animation: fadeIn 0.2s ease both;
+    }
+
+    .gw-card:hover {
+      border-color: #30363d;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .status-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 4px;
+      position: relative;
+    }
+
+    .status-dot.online  { background: var(--online); box-shadow: 0 0 8px var(--online); }
+    .status-dot.offline { background: var(--offline); }
+    .status-dot.unknown { background: var(--unknown); }
+
+    /* pulse ring for online */
+    .status-dot.online::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 1.5px solid var(--online);
+      opacity: 0;
+      animation: pulse 2s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1);   opacity: 0.6; }
+      100% { transform: scale(2.2); opacity: 0; }
+    }
+
+    .gw-info { flex: 1; min-width: 0; }
+
+    .gw-name {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.875rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .gw-id {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .gw-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .gw-state-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .gw-state-label.online  { color: var(--online); }
+    .gw-state-label.offline { color: var(--offline); }
+    .gw-state-label.unknown { color: var(--unknown); }
+
+    .empty-state {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.875rem;
+    }
+
+    .loading {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.875rem;
+      animation: blink 1.2s steps(1) infinite;
+    }
+
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .error-msg {
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid rgba(248, 81, 73, 0.3);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--offline);
+      grid-column: 1/-1;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ Gateway Monitor</h1>
+  <span>ChirpStack · lora.surfiot.nl</span>
+  <a class="config-link" href="/config">⚙ configuratie</a>
+</header>
+
+<div class="controls">
+  <div class="filter-wrap">
+    <input
+      type="text"
+      id="filterInput"
+      placeholder="Filter op postcode+huisnr  (bijv. 8917DD10)"
+      autocomplete="off"
+      spellcheck="false"
+    />
+    <button class="pin-btn" id="pinBtn" title="Filter vastzetten">📌</button>
+  </div>
+  <button class="refresh-btn" id="refreshBtn">↻ Vernieuwen</button>
+</div>
+
+<div class="status-bar" id="statusBar">
+  <span>Laden...</span>
+</div>
+
+<div class="gateway-grid" id="grid">
+  <div class="loading">Gateways ophalen...</div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'gw_pinned_filter';
+
+  const filterInput = document.getElementById('filterInput');
+  const pinBtn      = document.getElementById('pinBtn');
+  const refreshBtn  = document.getElementById('refreshBtn');
+  const grid        = document.getElementById('grid');
+  const statusBar   = document.getElementById('statusBar');
+
+  let pinned = false;
+  let refreshTimer = null;
+
+  // --- Restore pinned filter from localStorage ---
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    filterInput.value = saved;
+    setPinned(true);
+  }
+
+  function setPinned(state) {
+    pinned = state;
+    pinBtn.classList.toggle('active', pinned);
+    filterInput.classList.toggle('pinned', pinned);
+    if (pinned) {
+      localStorage.setItem(STORAGE_KEY, filterInput.value);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  pinBtn.addEventListener('click', () => {
+    setPinned(!pinned);
+    if (pinned) localStorage.setItem(STORAGE_KEY, filterInput.value);
+  });
+
+  filterInput.addEventListener('input', () => {
+    if (pinned) localStorage.setItem(STORAGE_KEY, filterInput.value);
+    scheduleRefresh();
+  });
+
+  refreshBtn.addEventListener('click', loadGateways);
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(loadGateways, 400);  // debounce typing
+  }
+
+  function formatLastSeen(iso) {
+    if (!iso) return 'nooit gezien';
+    const d = new Date(iso + 'Z');
+    const diff = Math.floor((Date.now() - d) / 1000);
+    if (diff < 60)  return `${diff}s geleden`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m geleden`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}u geleden`;
+    return d.toLocaleDateString('nl-NL');
+  }
+
+  function renderGateways(gateways) {
+    const online  = gateways.filter(g => g.state === 'online').length;
+    const offline = gateways.filter(g => g.state === 'offline').length;
+    const unknown = gateways.filter(g => g.state === 'unknown').length;
+
+    statusBar.innerHTML = `
+      <span><span class="dot" style="background:var(--online)"></span>${online} online</span>
+      <span><span class="dot" style="background:var(--offline)"></span>${offline} offline</span>
+      ${unknown ? `<span><span class="dot" style="background:var(--unknown)"></span>${unknown} onbekend</span>` : ''}
+      <span style="margin-left:auto">${gateways.length} gateway${gateways.length !== 1 ? 's' : ''} getoond · ${new Date().toLocaleTimeString('nl-NL')}</span>
+    `;
+
+    if (gateways.length === 0) {
+      grid.innerHTML = '<div class="empty-state">Geen gateways gevonden voor dit filter.</div>';
+      return;
+    }
+
+    // Sort: online first, then offline, then unknown
+    const order = { online: 0, offline: 1, unknown: 2 };
+    gateways.sort((a, b) => order[a.state] - order[b.state]);
+
+    grid.innerHTML = gateways.map((gw, i) => `
+      <div class="gw-card" style="animation-delay:${i * 30}ms">
+        <div class="status-dot ${gw.state}"></div>
+        <div class="gw-info">
+          <div class="gw-name" title="${gw.name}">${gw.name}</div>
+          <div class="gw-id">${gw.id}</div>
+          <div class="gw-meta">${formatLastSeen(gw.last_seen)}</div>
+        </div>
+        <span class="gw-state-label ${gw.state}">${gw.state}</span>
+      </div>
+    `).join('');
+  }
+
+  async function loadGateways() {
+    const filter = filterInput.value.trim();
+    const url = filter ? `/api/gateways?filter=${encodeURIComponent(filter)}` : '/api/gateways';
+
+    grid.innerHTML = '<div class="loading">Gateways ophalen...</div>';
+    statusBar.innerHTML = '<span>Laden...</span>';
+
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+
+      if (!resp.ok || data.error) {
+        grid.innerHTML = `<div class="error-msg">❌ Fout: ${data.error || resp.statusText}</div>`;
+        statusBar.innerHTML = '<span style="color:var(--offline)">Ophalen mislukt</span>';
+        return;
+      }
+
+      renderGateways(data);
+    } catch (err) {
+      grid.innerHTML = `<div class="error-msg">❌ Netwerkfout: ${err.message}</div>`;
+    }
+  }
+
+  // Auto-refresh every 30 seconds
+  loadGateways();
+  setInterval(loadGateways, 30_000);
+</script>
+</body>
+</html>

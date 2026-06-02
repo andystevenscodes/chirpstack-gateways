@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuratie · Gateway Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #21262d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #1f6feb;
+      --accent-glow: rgba(31, 111, 235, 0.3);
+      --success: #3fb950;
+      --error: #f85149;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 2rem 2.5rem;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .card header {
+      margin-bottom: 1.75rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    .card header h1 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .card header p {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .token-wrap {
+      position: relative;
+      margin-bottom: 1.25rem;
+    }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.6rem 2.8rem 0.6rem 0.75rem;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .toggle-visibility {
+      position: absolute;
+      right: 0.6rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 2px 4px;
+      transition: color 0.15s;
+    }
+    .toggle-visibility:hover { color: var(--text); }
+
+    .hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    button[type="submit"] {
+      background: var(--accent);
+      border: none;
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.6rem 1.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    button[type="submit"]:hover { opacity: 0.85; }
+
+    .back-link {
+      font-size: 0.8rem;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--text); }
+
+    .flash {
+      padding: 0.6rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: 'IBM Plex Mono', monospace;
+      margin-bottom: 1.25rem;
+    }
+    .flash.success { background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); color: var(--success); }
+    .flash.error   { background: rgba(248,81,73,0.1);  border: 1px solid rgba(248,81,73,0.3);  color: var(--error); }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-family: 'IBM Plex Mono', monospace;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+    .status-badge .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <header>
+    <h1>⬡ Configuratie</h1>
+    <p>ChirpStack API token instellen voor lora.surfiot.nl</p>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="flash {{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="status-badge">
+    <span class="dot" style="background: {{ '#3fb950' if has_token else '#f85149' }}"></span>
+    {% if has_token %}Token geconfigureerd{% else %}Nog geen token ingesteld{% endif %}
+  </div>
+
+  <form method="POST">
+    <label for="api_token">API Token</label>
+    <div class="token-wrap">
+      <input
+        type="password"
+        id="api_token"
+        name="api_token"
+        placeholder="eyJ0eXAiOiJKV1Qi..."
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button type="button" class="toggle-visibility" onclick="toggleVis()" title="Tonen/verbergen">👁</button>
+    </div>
+    <p class="hint">
+      Te vinden in ChirpStack onder <strong>API Keys</strong> → Network API Key.<br>
+      De token wordt lokaal opgeslagen in <code>config.json</code>.
+    </p>
+    <div class="btn-row">
+      <button type="submit">Opslaan</button>
+      {% if has_token %}
+        <a class="back-link" href="/">← Terug naar monitor</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<script>
+  function toggleVis() {
+    const input = document.getElementById('api_token');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+</script>
+</body>
+</html>

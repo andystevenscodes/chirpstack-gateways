@@ -1,0 +1,8 @@
+services:
+  chirpstack-monitor:
+    build: .
+    ports:
+      - "5555:5000"      # host:container
+    volumes:
+      - ./config.json:/app/config.json   # token blijft bewaard buiten container
+    restart: unless-stopped

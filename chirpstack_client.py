@@ -9,13 +9,20 @@ CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.json")
 
 
 def load_config() -> dict:
-    if os.path.exists(CONFIG_PATH):
+    # If config.json is missing or accidentally a directory, return empty config
+    if not os.path.isfile(CONFIG_PATH):
+        return {}
+    try:
         with open(CONFIG_PATH) as f:
             return json.load(f)
-    return {}
+    except (json.JSONDecodeError, OSError):
+        return {}
 
 
 def save_config(data: dict):
+    # If config.json is a directory (Docker volume mishap), remove it first
+    if os.path.isdir(CONFIG_PATH):
+        os.rmdir(CONFIG_PATH)
     existing = load_config()
     existing.update(data)
     with open(CONFIG_PATH, "w") as f:

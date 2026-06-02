@@ -35,19 +35,49 @@ Gebouwd voor gebruik met **lora.surfiot.nl** (ChirpStack v4).
 
 ---
 
-## Vereisten
+## Snel opstarten via Docker (aanbevolen)
 
-- Python 3.10+
-- ChirpStack v4 instantie met gRPC bereikbaar op poort 443
-- Een ChirpStack **Network API Key**
+Vereisten: Docker geïnstalleerd op de server.
+
+```bash
+# 1. Pull de image
+docker pull ghcr.io/andystevenscodes/chirpstack-gateways:latest
+
+# 2. Start de container
+docker run -d \
+  --name chirpstack-monitor \
+  -p 5555:5000 \
+  -v $(pwd)/config.json:/app/config.json \
+  --restart unless-stopped \
+  ghcr.io/andystevenscodes/chirpstack-gateways:latest
+```
+
+> ℹ️ `config.json` hoeft niet vooraf aangemaakt te worden — de app handelt een ontbrekend bestand automatisch af.
+
+Open dan `http://SERVERIP:5555` in je browser en vul je API token in via de configuratiepagina.
+
+### Updaten naar een nieuwe versie
+
+```bash
+docker pull ghcr.io/andystevenscodes/chirpstack-gateways:latest
+docker stop chirpstack-monitor && docker rm chirpstack-monitor
+docker run -d \
+  --name chirpstack-monitor \
+  -p 5555:5000 \
+  -v $(pwd)/config.json:/app/config.json \
+  --restart unless-stopped \
+  ghcr.io/andystevenscodes/chirpstack-gateways:latest
+```
 
 ---
 
-## Installatie
+## Lokaal draaien (development)
+
+Vereisten: Python 3.10+
 
 ```bash
 # 1. Clone de repository
-git clone https://github.com/JOUWUSERNAME/chirpstack-gateways.git
+git clone https://github.com/andystevenscodes/chirpstack-gateways.git
 cd chirpstack-gateways
 
 # 2. Maak een virtual environment aan
@@ -56,24 +86,18 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # 3. Installeer dependencies
 pip install flask grpcio chirpstack-api
-```
 
----
-
-## Gebruik
-
-```bash
-# Start de applicatie
+# 4. Start de applicatie
 python app.py
 ```
 
 Open dan `http://localhost:5000` in je browser.
 
-Bij de eerste keer opstarten word je automatisch doorgestuurd naar de configuratiepagina (`/config`). Vul hier je ChirpStack API token in.
-
 ---
 
 ## Configuratie
+
+Bij de eerste keer opstarten word je automatisch doorgestuurd naar `/config`. Vul hier je ChirpStack API token in — die wordt opgeslagen in `config.json`.
 
 | Instelling | Locatie | Omschrijving |
 |---|---|---|
@@ -81,7 +105,7 @@ Bij de eerste keer opstarten word je automatisch doorgestuurd naar de configurat
 | Server | `chirpstack_client.py` | Standaard: `lora.surfiot.nl:443` |
 | Tenant ID | `chirpstack_client.py` | UUID van je ChirpStack tenant |
 
-> ⚠️ `config.json` staat in `.gitignore` en bevat je API token — commit dit bestand nooit.
+> ⚠️ `config.json` staat in `.gitignore` — commit dit bestand nooit.
 
 ### API Token aanmaken in ChirpStack
 
@@ -99,6 +123,8 @@ chirpstack-gateways/
 ├── app.py                  # Flask routes
 ├── chirpstack_client.py    # gRPC client + config lezen/schrijven
 ├── config.json             # API token opslag (niet in git)
+├── Dockerfile
+├── .dockerignore
 ├── templates/
 │   ├── index.html          # Gateway overzicht
 │   └── config.html         # Configuratiepagina
